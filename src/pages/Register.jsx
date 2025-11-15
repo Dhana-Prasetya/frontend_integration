@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { Form, Button, Card, Container } from 'react-bootstrap';
 
 function Register() {
-    const [form, setForm] = useState({ name: '', email: '', password: '' });
+    const [form, setForm] = useState({ name: '', fullname:'', email: '', password: '' });
     const navigate = useNavigate();
 
     const handleChange = (e) => setForm({ ...form, [e.target.name]: e.target.value });
@@ -12,11 +12,11 @@ function Register() {
     const handleSubmit = async (e) => {
         e.preventDefault();
         try {
-        await api.post('/auth/register', form);
-        alert('Registrasi berhasil! Silakan login.');
-        navigate('/login');
+            await api.post('/user/register', form);
+            alert('Registrasi berhasil! Silakan login.');
+            navigate('/login');
         } catch (err) {
-        alert('Registrasi gagal');
+            alert('Registrasi gagal');
         }
     };
 
@@ -28,8 +28,16 @@ function Register() {
             <Form.Group className="mb-3">
                 <Form.Control
                 name="name"
-                placeholder="Nama Lengkap"
+                placeholder="Nama"
                 value={form.name}
+                onChange={handleChange}
+                />
+            </Form.Group>
+            <Form.Group className="mb-3">
+                <Form.Control
+                name="fullname"
+                placeholder="Nama Lengkap"
+                value={form.fullname}
                 onChange={handleChange}
                 />
             </Form.Group>

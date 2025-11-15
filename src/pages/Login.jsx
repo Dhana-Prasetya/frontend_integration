@@ -10,8 +10,8 @@ function Login() {
     const handleSubmit = async (e) => {
         e.preventDefault();
         try {
-        const res = await api.post('/auth/login', form);
-        localStorage.setItem('token', res.data.token);
+        const res = await api.post('/user/login', form);
+        localStorage.setItem('token', res.data.data.token);
         navigate('/dashboard');
         } catch {
         alert('Email atau password salah');

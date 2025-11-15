@@ -1,50 +1,41 @@
 import React, { useEffect, useState } from 'react';
-import { Table, Button, Modal, Form, Container } from 'react-bootstrap';
+import { Table, Button, Container } from 'react-bootstrap';
 import api from '../api/api';
+import ModalCreate from '../components/ModalCreate';
+import ModalDelete from '../components/ModalDelete';
 
 function Dashboard() {
     const [items, setItems] = useState([]);
-    const [form, setForm] = useState({ title: '', description: '' });
-    const [show, setShow] = useState(false);
-    const [editId, setEditId] = useState(null);
+    const [showCreate, setShowCreate] = useState(false);
+    const [editItem, setEditItem] = useState(null);
 
     const fetchData = async () => {
         const token = localStorage.getItem('token');
-        const res = await api.get('/items', {
+        const res = await api.get('/products', {
         headers: { Authorization: `Bearer ${token}` },
         });
-        setItems(res.data);
-    };
 
-    const handleSave = async () => {
-        const token = localStorage.getItem('token');
-        if (editId) {
-        await api.put(`/items/${editId}`, form, {
-            headers: { Authorization: `Bearer ${token}` },
-        });
-        } else {
-        await api.post('/items', form, {
-            headers: { Authorization: `Bearer ${token}` },
-        });
+        const payload = res && res.data;
+        let list = [];
+        if (Array.isArray(payload)) {
+            list = payload;
+        } else if (payload) {
+            if (Array.isArray(payload.data)) list = payload.data;
+            else if (Array.isArray(payload.products)) list = payload.products;
         }
-        setForm({ title: '', description: '' });
-        setEditId(null);
-        setShow(false);
-        fetchData();
-    };
 
-    const handleDelete = async (id) => {
-        const token = localStorage.getItem('token');
-        await api.delete(`/items/${id}`, {
-        headers: { Authorization: `Bearer ${token}` },
-        });
-        fetchData();
+        if (!Array.isArray(list)) {
+            // Fallback: coerce to empty array and log unexpected payload for debugging
+            console.warn('Unexpected /products response shape, expected array. Response:', res.data);
+            list = [];
+        }
+
+        setItems(list);
     };
 
     const handleEdit = (item) => {
-        setForm({ title: item.title, description: item.description });
-        setEditId(item.id);
-        setShow(true);
+        setEditItem(item);
+        setShowCreate(true);
     };
 
     useEffect(() => {
@@ -53,79 +44,53 @@ function Dashboard() {
 
     return (
         <Container className="py-4">
-        <div className="d-flex justify-content-between align-items-center mb-3">
-            <h3>Dashboard</h3>
-            <Button onClick={() => setShow(true)}>Tambah Data</Button>
-        </div>
+            <div className="d-flex justify-content-between align-items-center mb-3">
+                <h3>Dashboard</h3>
+                <Button onClick={() => { setEditItem(null); setShowCreate(true); }}>Tambah Data</Button>
+            </div>
 
-        <Table striped bordered hover>
-            <thead>
-            <tr>
-                <th>#</th>
-                <th>Judul</th>
-                <th>Deskripsi</th>
-                <th>Aksi</th>
-            </tr>
-            </thead>
-            <tbody>
-            {items.map((item, i) => (
-                <tr key={item.id}>
-                <td>{i + 1}</td>
-                <td>{item.title}</td>
-                <td>{item.description}</td>
-                <td>
-                    <Button
-                    size="sm"
-                    variant="warning"
-                    className="me-2"
-                    onClick={() => handleEdit(item)}
-                    >
-                    Edit
-                    </Button>
-                    <Button
-                    size="sm"
-                    variant="danger"
-                    onClick={() => handleDelete(item.id)}
-                    >
-                    Hapus
-                    </Button>
-                </td>
+            <ModalCreate
+                show={showCreate}
+                handleClose={() => setShowCreate(false)}
+                item={editItem}
+                onSaved={() => { setShowCreate(false); fetchData(); }}
+            />
+
+            <Table striped bordered hover>
+                <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Judul</th>
+                    <th>Deskripsi</th>
+                    <th>Aksi</th>
                 </tr>
-            ))}
-            </tbody>
-        </Table>
-
-        <Modal show={show} onHide={() => setShow(false)} centered>
-            <Modal.Header closeButton>
-            <Modal.Title>{editId ? 'Edit Data' : 'Tambah Data'}</Modal.Title>
-            </Modal.Header>
-            <Modal.Body>
-            <Form>
-                <Form.Group className="mb-3">
-                <Form.Label>Judul</Form.Label>
-                <Form.Control
-                    value={form.title}
-                    onChange={(e) => setForm({ ...form, title: e.target.value })}
-                />
-                </Form.Group>
-                <Form.Group className="mb-3">
-                <Form.Label>Deskripsi</Form.Label>
-                <Form.Control
-                    value={form.description}
-                    onChange={(e) => setForm({ ...form, description: e.target.value })}
-                />
-                </Form.Group>
-            </Form>
-            </Modal.Body>
-            <Modal.Footer>
-            <Button variant="secondary" onClick={() => setShow(false)}>
-                Batal
-            </Button>
-            <Button variant="primary" onClick={handleSave}>
-                Simpan
-            </Button>
-            </Modal.Footer>
-        </Modal>
+                </thead>
+                <tbody>
+                {items.map((item, i) => (
+                    <tr key={item.id}>
+                    <td>{i + 1}</td>
+                    <td>{item.title}</td>
+                    <td>{item.description}</td>
+                    <td>
+                        <Button
+                            size="sm"
+                            variant="warning"
+                            className="me-2"
+                            onClick={() => handleEdit(item)}
+                        >
+                            Edit
+                        </Button>
+                        <ModalDelete
+                            id={item.id}
+                            name={item.name || item.title}
+                            onDeleted={fetchData}
+                        />
+                    </td>
+                    </tr>
+                ))}
+                </tbody>
+            </Table>
+            {/* Creation/edit modal handled by ModalCreate component above */}
         </Container>
     );
 }
